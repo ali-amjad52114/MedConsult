@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Environment / secrets
+.env
+*.env
+
+# Hugging Face model cache
+.cache/
+
+# Benchmarking outputs
+benchmarking_results/
+
+# ChromaDB / experience library
+experience_library/
+
+# Test outputs
+*.xml
+*.log
+*_output.txt
+debug_output.txt
+out.txt
+
+# IDE
+.vscode/
+.idea/
+
+# Jupyter
+.ipynb_checkpoints/
