@@ -1,0 +1,10 @@
+torch
+transformers
+accelerate
+gradio
+Pillow
+pytest
+chromadb
+google-generativeai
+bitsandbytes
+flash-attn>=2.0.0

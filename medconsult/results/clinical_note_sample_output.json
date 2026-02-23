@@ -1,0 +1,10 @@
+{
+  "input_type": "clinical_note",
+  "analyst": "Extracted demographics, diagnoses, medications",
+  "clinician": "Heart failure interpretation",
+  "critic": "Patient summary with follow-up",
+  "evaluation_score": null,
+  "metadata": {
+    "note": "Placeholder. Run app.py with clinical note example to generate real output."
+  }
+}

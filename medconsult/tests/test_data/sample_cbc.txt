@@ -1,0 +1,16 @@
+---
+COMPLETE BLOOD COUNT (CBC) REPORT
+Patient: John Doe | Age: 52 | Sex: Male | Date: 2026-02-15
+
+Test                  Result    Unit        Reference Range    Flag
+White Blood Cells     12.8      x10^9/L     4.0 - 11.0        HIGH
+Red Blood Cells       4.2       x10^12/L    4.5 - 5.5         LOW
+Hemoglobin            11.2      g/dL        13.5 - 17.5       LOW
+Hematocrit            33.8      %           38.5 - 50.0       LOW
+MCV                   80.5      fL          80.0 - 100.0      NORMAL
+MCH                   26.7      pg          27.0 - 33.0       LOW
+MCHC                  33.1      g/dL        31.5 - 35.5       NORMAL
+Platelets             415       x10^9/L     150 - 400         HIGH
+Neutrophils           78.2      %           40.0 - 70.0       HIGH
+Lymphocytes           14.1      %           20.0 - 40.0       LOW
+---

@@ -1,0 +1,21 @@
+---
+DISCHARGE SUMMARY
+Patient: Jane Smith | Age: 67 | Sex: Female
+Admission Date: 2026-02-10 | Discharge Date: 2026-02-14
+
+CHIEF COMPLAINT: Shortness of breath and bilateral leg swelling for 3 days.
+
+HISTORY OF PRESENT ILLNESS: 67-year-old female with known history of hypertension and type 2 diabetes mellitus presented with progressive dyspnea on exertion and bilateral lower extremity edema over the past 3 days. She reports sleeping with 3 pillows and occasional paroxysmal nocturnal dyspnea. She denies chest pain, palpitations, or syncope. She admits to dietary indiscretion over the holidays and missed her furosemide for 4 days.
+
+VITAL SIGNS ON ADMISSION: BP 162/94, HR 96, RR 22, SpO2 92% on room air, Temp 37.1C
+
+PHYSICAL EXAM: JVP elevated to 10cm. Bilateral crackles at lung bases. S3 gallop present. 2+ bilateral pitting edema to mid-shin.
+
+LABS: BNP 1840 pg/mL (normal <100). Creatinine 1.8 mg/dL (baseline 1.2). Troponin negative x2. Chest X-ray showing bilateral pleural effusions and pulmonary congestion.
+
+HOSPITAL COURSE: Patient was diagnosed with acute decompensated heart failure, likely precipitated by medication non-compliance and dietary indiscretion. She was treated with IV furosemide with good diuretic response. She lost 4.2 kg during admission. Renal function improved with creatinine trending down to 1.4 by discharge. She was restarted on her home medications including lisinopril 20mg, metformin 1000mg BID, and furosemide 40mg daily (increased from 20mg). Cardiology was consulted and recommended outpatient echocardiogram.
+
+DISCHARGE DIAGNOSIS: Acute decompensated heart failure (HFpEF). Hypertension. Type 2 diabetes mellitus.
+
+DISCHARGE INSTRUCTIONS: Low sodium diet (<2g daily). Daily weights. Return if weight gain >2kg in 2 days. Follow up with cardiology in 1 week. Follow up with PCP in 2 weeks.
+---

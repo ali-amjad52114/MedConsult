@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="6" time="10.308" timestamp="2026-02-23T10:06:39.397076-07:00" hostname="AliAmjad"><testcase classname="tests.test_phase0" name="test_imports" time="9.512"><failure message="pydantic.v1.errors.ConfigError: unable to infer type for attribute &quot;chroma_server_nofile&quot;">def test_imports():
+        """1. Verify all required packages can be imported."""
+        try:
+            import torch
+            import transformers
+            import gradio
+            import PIL
+&gt;           import chromadb
+
+tests\test_phase0.py:12: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Users\aliam\AppData\Roaming\Python\Python314\site-packages\chromadb\__init__.py:3: in &lt;module&gt;
+    from chromadb.api.client import Client as ClientCreator
+C:\Users\aliam\AppData\Roaming\Python\Python314\site-packages\chromadb\api\__init__.py:51: in &lt;module&gt;
+    from chromadb.config import DEFAULT_DATABASE, DEFAULT_TENANT
+C:\Users\aliam\AppData\Roaming\Python\Python314\site-packages\chromadb\config.py:120: in &lt;module&gt;
+    class Settings(BaseSettings):  # type: ignore
+C:\Users\aliam\AppData\Roaming\Python\Python314\site-packages\pydantic\v1\main.py:221: in __new__
+    inferred = ModelField.infer(
+C:\Users\aliam\AppData\Roaming\Python\Python314\site-packages\pydantic\v1\fields.py:504: in infer
+    return cls(
+C:\Users\aliam\AppData\Roaming\Python\Python314\site-packages\pydantic\v1\fields.py:434: in __init__
+    self.prepare()
+C:\Users\aliam\AppData\Roaming\Python\Python314\site-packages\pydantic\v1\fields.py:544: in prepare
+    self._set_default_and_type()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = ModelField(name='chroma_server_nofile', type=UndefinedType, required=False, default=None)
+
+    def _set_default_and_type(self) -&gt; None:
+        """
+        Set the default value, infer the type if needed and check if `None` value is valid.
+        """
+        if self.default_factory is not None:
+            if self.type_ is Undefined:
+                raise errors_.ConfigError(
+                    f'you need to set the type of field {self.name!r} when using `default_factory`'
+                )
+            return
+    
+        default_value = self.get_default()
+    
+        if default_value is not None and self.type_ is Undefined:
+            self.type_ = default_value.__class__
+            self.outer_type_ = self.type_
+            self.annotation = self.type_
+    
+        if self.type_ is Undefined:
+&gt;           raise errors_.ConfigError(f'unable to infer type for attribute "{self.name}"')
+E           pydantic.v1.errors.ConfigError: unable to infer type for attribute "chroma_server_nofile"
+
+C:\Users\aliam\AppData\Roaming\Python\Python314\site-packages\pydantic\v1\fields.py:576: ConfigError</failure></testcase><testcase classname="tests.test_phase0" name="test_project_structure" time="0.001" /><testcase classname="tests.test_phase0" name="test_sample_data_exists" time="0.001" /><testcase classname="tests.test_phase0" name="test_gpu_available" time="0.001" /><testcase classname="tests.test_phase0" name="test_experience_library_dirs" time="0.001" /><testcase classname="tests.test_phase0" name="test_google_api_key" time="0.001" /></testsuite></testsuites>

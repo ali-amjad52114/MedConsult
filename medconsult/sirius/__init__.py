@@ -1,0 +1,3 @@
+"""
+SiriuS: Self-improvement engine.
+"""

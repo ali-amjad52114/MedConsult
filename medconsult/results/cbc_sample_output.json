@@ -1,0 +1,10 @@
+{
+  "input_type": "lab_report",
+  "analyst": "Extracted CBC values with flags",
+  "clinician": "Interpretation of anemia triad",
+  "critic": "Patient summary with questions",
+  "evaluation_score": null,
+  "metadata": {
+    "note": "Placeholder. Run app.py with CBC example to generate real output."
+  }
+}

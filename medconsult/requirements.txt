@@ -1,0 +1,8 @@
+torch
+transformers
+accelerate
+gradio
+Pillow
+pytest
+chromadb
+google-generativeai
