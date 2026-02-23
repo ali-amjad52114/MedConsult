@@ -100,7 +100,7 @@ class OptimizedMedConsultPipeline:
             "timings": timings,
             "metadata": {
                 "model": "google/medgemma-1.5-4b-it",
-                "meta_model": "gemini-2.0-flash",
+                "meta_model": "gemini-2.5-flash",
                 "pipeline_version": "4.1-optimized",
                 "timestamp": datetime.now(timezone.utc).isoformat(),
                 "input_type": input_type,

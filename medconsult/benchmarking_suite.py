@@ -450,7 +450,7 @@ def create_benchmarked_pipeline(tracker: BenchmarkTracker, monitor: RealTimeMoni
                 },
                 "metadata": {
                     "model": "google/medgemma-1.5-4b-it",
-                    "meta_model": "gemini-2.0-flash",
+                    "meta_model": "gemini-2.5-flash",
                     "pipeline_version": "4.0-benchmarked",
                     "timestamp": datetime.now(timezone.utc).isoformat(),
                     "input_type": input_type,

@@ -70,7 +70,7 @@ class MedConsultPipeline:
             "critic": critic_output,
             "metadata": {
                 "model": "google/medgemma-1.5-4b-it",
-                "meta_model": "gemini-2.0-flash",
+                "meta_model": "gemini-2.5-flash",
                 "pipeline_version": "4.0-sirius-cloud",
                 "timestamp": datetime.now(timezone.utc).isoformat(),
                 "input_type": input_type,
@@ -181,7 +181,7 @@ class MedConsultPipeline:
             "timings": timings,
             "metadata": {
                 "model": "google/medgemma-1.5-4b-it",
-                "meta_model": "gemini-2.0-flash",
+                "meta_model": "gemini-2.5-flash",
                 "pipeline_version": "4.0-sirius-cloud",
                 "timestamp": datetime.now(timezone.utc).isoformat(),
                 "input_type": input_type,
