@@ -38,7 +38,7 @@ class CloudManager:
             self.provider = "google"
             self.api_key = google_key
             genai.configure(api_key=google_key)
-            self.model = genai.GenerativeModel('gemini-2.0-flash')
+            self.model = genai.GenerativeModel('gemini-2.5-flash')
             print("INFO: CloudManager initialized with Google Gemini.")
         elif openai_key:
             self.provider = "openai"
@@ -79,7 +79,7 @@ class CloudManager:
         # the model's system_instruction parameter in GenerativeModel)"
         
         model = genai.GenerativeModel(
-            model_name='gemini-2.0-flash',
+            model_name='gemini-2.5-flash',
             system_instruction=system_prompt,
             generation_config=genai.types.GenerationConfig(
                 temperature=0.1,
