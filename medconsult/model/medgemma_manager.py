@@ -7,7 +7,7 @@ import os
 import torch
 from pathlib import Path
 from PIL import Image
-from transformers import AutoModelForCausalLM, AutoProcessor
+from transformers import AutoModelForCausalLM, AutoProcessor, BitsAndBytesConfig
 
 
 class MedGemmaManager:
@@ -44,22 +44,33 @@ class MedGemmaManager:
         token = self._get_hf_token()
         model_id = "google/medgemma-1.5-4b-it"
 
-        if self.device == "cpu":
-            print("WARNING: GPU not available. Loading model to CPU. This will be slow.")
+        self.processor = AutoProcessor.from_pretrained(model_id, token=token)
 
         if torch.cuda.is_available():
-            dtype = torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16
+            # 4-bit quantization: reduces model from ~8 GB to ~4 GB VRAM.
+            # Required on 16 GB GPUs (T4) to leave room for the vision tower
+            # activations (~1.5 GB) when processing images.
+            quantization_config = BitsAndBytesConfig(
+                load_in_4bit=True,
+                bnb_4bit_compute_dtype=torch.float16,
+                bnb_4bit_use_double_quant=True,
+                bnb_4bit_quant_type="nf4",
+            )
+            self.model = AutoModelForCausalLM.from_pretrained(
+                model_id,
+                device_map="auto",
+                quantization_config=quantization_config,
+                token=token,
+            )
+            print("INFO: Model loaded with 4-bit quantization (GPU).")
         else:
-            dtype = torch.float32
-
-        # Automatically download and load model and processor
-        self.processor = AutoProcessor.from_pretrained(model_id, token=token)
-        self.model = AutoModelForCausalLM.from_pretrained(
-            model_id,
-            device_map="auto",
-            torch_dtype=dtype,
-            token=token
-        )
+            print("WARNING: GPU not available. Loading model to CPU. This will be slow.")
+            self.model = AutoModelForCausalLM.from_pretrained(
+                model_id,
+                device_map="auto",
+                torch_dtype=torch.float32,
+                token=token,
+            )
 
         return self.model, self.processor
 
