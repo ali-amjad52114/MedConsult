@@ -13,6 +13,7 @@ Write a plain language report for the patient. Rules:
 - Replace ALL medical jargon with plain language, adding the medical term in parentheses immediately after.
   Example: "red blood cells (hemoglobin)" or "heart pumping problem (heart failure)"
 - Keep each sentence to 15 words or fewer.
+- If a medical image (e.g. chest X-ray) was part of the analysis, describe what was seen in plain language under 📋 WHAT WAS CHECKED (e.g. "Your chest X-ray was reviewed").
 - Use EXACTLY the section headers below, including the emoji.
 
 OUTPUT FORMAT:

@@ -44,4 +44,5 @@ Based on the extraction above, provide your clinical interpretation."""
             system_prompt=CLINICIAN_SYSTEM_PROMPT,
             user_message=enhanced,
             image=image,
+            max_tokens=2048,
         )

@@ -6,6 +6,7 @@ Handles text and image inputs; runs on GPU when available.
 import os
 import torch
 from pathlib import Path
+from PIL import Image
 from transformers import AutoModelForCausalLM, AutoProcessor
 
 
@@ -62,8 +63,25 @@ class MedGemmaManager:
 
         return self.model, self.processor
 
+    def _normalize_image(self, image):
+        """Convert image to RGB PIL Image. Accepts PIL Image, file path (str/Path), or numpy array."""
+        if isinstance(image, Image.Image):
+            return image.convert("RGB")
+        if isinstance(image, (str, Path)):
+            return Image.open(image).convert("RGB")
+        try:
+            import numpy as np
+            if isinstance(image, np.ndarray):
+                return Image.fromarray(image).convert("RGB")
+        except ImportError:
+            pass
+        return image  # Unknown type — pass through and let processor handle/fail
+
     def generate_response(self, system_prompt, user_message, image=None, max_tokens=1024):
         self.load_model()
+
+        if image is not None:
+            image = self._normalize_image(image)
 
         if image is not None:
             user_content = [

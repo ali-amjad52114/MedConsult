@@ -15,6 +15,8 @@ CRITICAL: Do NOT interpret each finding individually. First look for PATTERNS ac
 When you see low RBC, low hemoglobin, AND low hematocrit together, always discuss this as a pattern.
 You MUST include exactly one of these three urgency levels in your output: ROUTINE, WORTH DISCUSSING, NEEDS PROMPT ATTENTION.
 
+IF A MEDICAL IMAGE WAS ANALYZED: The Analyst's extraction will include ABCDE image findings (Airways, Bones, Cardiac, Diaphragm, Everything else). Treat these as primary findings — correlate image findings with any accompanying lab values or clinical text. For example, if the image shows cardiomegaly AND labs show elevated BNP, connect these findings explicitly.
+
 OUTPUT FORMAT:
 
 CLINICAL INTERPRETATION:
