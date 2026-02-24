@@ -1,1 +1,6 @@
-{}
+{
+  "total_chains": 2,
+  "good_chains": 1,
+  "bad_chains": 1,
+  "average_score": 3.0
+}

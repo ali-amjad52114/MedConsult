@@ -7,7 +7,14 @@ import os
 import torch
 from pathlib import Path
 from PIL import Image
-from transformers import AutoModelForCausalLM, AutoProcessor, BitsAndBytesConfig
+from transformers import AutoModelForCausalLM, AutoProcessor
+
+try:
+    from transformers import BitsAndBytesConfig
+    import bitsandbytes  # noqa: F401
+    _BNB_AVAILABLE = True
+except ImportError:
+    _BNB_AVAILABLE = False
 
 
 class MedGemmaManager:
@@ -47,22 +54,32 @@ class MedGemmaManager:
         self.processor = AutoProcessor.from_pretrained(model_id, token=token)
 
         if torch.cuda.is_available():
-            # 4-bit quantization: reduces model from ~8 GB to ~4 GB VRAM.
-            # Required on 16 GB GPUs (T4) to leave room for the vision tower
-            # activations (~1.5 GB) when processing images.
-            quantization_config = BitsAndBytesConfig(
-                load_in_4bit=True,
-                bnb_4bit_compute_dtype=torch.float16,
-                bnb_4bit_use_double_quant=True,
-                bnb_4bit_quant_type="nf4",
-            )
-            self.model = AutoModelForCausalLM.from_pretrained(
-                model_id,
-                device_map="auto",
-                quantization_config=quantization_config,
-                token=token,
-            )
-            print("INFO: Model loaded with 4-bit quantization (GPU).")
+            if _BNB_AVAILABLE:
+                # 4-bit quantization: reduces model from ~8 GB to ~4 GB VRAM.
+                # Required on 16 GB GPUs (T4) to leave room for the vision tower
+                # activations (~1.5 GB) when processing images.
+                quantization_config = BitsAndBytesConfig(
+                    load_in_4bit=True,
+                    bnb_4bit_compute_dtype=torch.float16,
+                    bnb_4bit_use_double_quant=True,
+                    bnb_4bit_quant_type="nf4",
+                )
+                self.model = AutoModelForCausalLM.from_pretrained(
+                    model_id,
+                    device_map="auto",
+                    quantization_config=quantization_config,
+                    token=token,
+                )
+                print("INFO: Model loaded with 4-bit quantization (GPU).")
+            else:
+                dtype = torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16
+                self.model = AutoModelForCausalLM.from_pretrained(
+                    model_id,
+                    device_map="auto",
+                    torch_dtype=dtype,
+                    token=token,
+                )
+                print(f"WARNING: bitsandbytes not available. Loaded in {dtype} — may require more VRAM.")
         else:
             print("WARNING: GPU not available. Loading model to CPU. This will be slow.")
             self.model = AutoModelForCausalLM.from_pretrained(
