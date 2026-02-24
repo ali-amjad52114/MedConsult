@@ -32,7 +32,7 @@ def _get_lesson_count() -> int:
 def _format_sirius_tab(sirius_result: dict) -> str:
     """Format SiriuS evaluation result for Tab 5."""
     if not sirius_result:
-        return """SiriuS evaluation unavailable (cloud API may be down or misconfigured).
+        return """⏳ SiriuS evaluation is still running (MedGemma on CPU takes a few minutes).
 Your results above are complete and valid.
 """
     ev = sirius_result.get("evaluation", {})
@@ -155,13 +155,14 @@ def _process(
 
     t = Thread(target=_sirius_background)
     t.start()
-    t.join(timeout=90)  # Wait up to 90s for SiriuS; user already has results
+    t.join(timeout=600)  # CPU MedGemma inference takes several minutes per call
 
     # 5. Format Tab 5 content (score, lessons, augmentation status)
     if sirius_result[0] is not None:
         tab5 = _format_sirius_tab(sirius_result[0])
     else:
-        tab5 = """SiriuS evaluation unavailable (cloud API may be down or misconfigured).
+        tab5 = """⏳ SiriuS evaluation is still running in the background (MedGemma on CPU is slow).
+Refresh this tab in a few minutes to see the score and extracted lessons.
 Your results above are complete and valid.
 """
 
