@@ -20,27 +20,47 @@ from sirius.augmentation import EnhancedAugmentation
 from sirius.validator import PeriodicValidator
 
 
+EVAL_BACKENDS = ("medgemma", "gemini", "openai")
+
+
 class MedConsultPipeline:
     """Main pipeline: Analyst → Clinician → Critic with SiriuS evaluate_and_learn."""
 
-    def __init__(self):
-        # Model managers: MedGemma for clinical agents, Cloud (Gemini) for Evaluator + LessonExtractor
+    def __init__(self, eval_backend: str = "medgemma"):
+        """
+        eval_backend: which model to use for SiriuS evaluation & lesson extraction.
+          "medgemma" (default) — fully offline, uses the already-loaded MedGemma model.
+          "gemini"             — requires GOOGLE_API_KEY env var.
+          "openai"             — requires OPENAI_API_KEY env var.
+        """
+        if eval_backend not in EVAL_BACKENDS:
+            raise ValueError(f"eval_backend must be one of {EVAL_BACKENDS}, got: {eval_backend!r}")
+
         medgemma = MedGemmaManager()
-        cloud = CloudManager()
+
+        # Select evaluation manager: MedGemma (offline) or cloud (requires API key)
+        if eval_backend == "medgemma":
+            eval_manager = medgemma
+            print("INFO: Evaluation backend: MedGemma (offline, no cloud required).")
+        else:
+            eval_manager = CloudManager()
+            print(f"INFO: Evaluation backend: cloud ({eval_backend}).")
+
+        self.eval_backend = eval_backend
 
         # Clinical agents (all use MedGemma)
         self.analyst = AnalystAgent(medgemma)
         self.clinician = ClinicianAgent(medgemma)
         self.critic = CriticAgent(medgemma)
-        # SiriuS components: Evaluator (Gemini), ExperienceLibrary (JSON chains), MemoryStore (ChromaDB)
-        self.evaluator = EvaluatorAgent(cloud)
+        # SiriuS components use eval_manager (MedGemma or cloud)
+        self.evaluator = EvaluatorAgent(eval_manager)
         self.experience_library = ExperienceLibrary()
         self.memory_store = MemoryStore()
-        self.lesson_extractor = LessonExtractor(cloud)
+        self.lesson_extractor = LessonExtractor(eval_manager)
         self.run_count = 0
         self.chain_history = []
-        self.validator = PeriodicValidator(cloud, validation_interval=5)
-        self.augmenter = EnhancedAugmentation(cloud, max_retries=3)
+        self.validator = PeriodicValidator(eval_manager, validation_interval=5)
+        self.augmenter = EnhancedAugmentation(eval_manager, max_retries=3)
 
     def run(self, user_input_text: str, image=None) -> dict:
         """
@@ -75,8 +95,8 @@ class MedConsultPipeline:
             "critic": critic_output,
             "metadata": {
                 "model": "google/medgemma-1.5-4b-it",
-                "meta_model": "gemini-2.5-flash",
-                "pipeline_version": "4.0-sirius-cloud",
+                "eval_backend": self.eval_backend,
+                "pipeline_version": "4.0-sirius",
                 "timestamp": datetime.now(timezone.utc).isoformat(),
                 "input_type": input_type,
                 "agent_chain": ["analyst", "clinician", "critic"],
@@ -304,8 +324,8 @@ class MedConsultPipeline:
             "timings": timings,
             "metadata": {
                 "model": "google/medgemma-1.5-4b-it",
-                "meta_model": "gemini-2.5-flash",
-                "pipeline_version": "4.0-sirius-cloud",
+                "eval_backend": self.eval_backend,
+                "pipeline_version": "4.0-sirius",
                 "timestamp": datetime.now(timezone.utc).isoformat(),
                 "input_type": input_type,
                 "agent_chain": ["analyst", "clinician", "critic"],
