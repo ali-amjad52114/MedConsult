@@ -48,12 +48,22 @@ class MedGemmaManager:
         if self.model is not None and self.processor is not None:
             return self.model, self.processor
 
+        # Re-check GPU every time we load (fixes Kaggle/Colab: GPU selected after session start)
+        use_cuda = torch.cuda.is_available()
+        if os.environ.get("FORCE_CUDA", "").strip().lower() in ("1", "true", "yes"):
+            use_cuda = True
+        self.device = "cuda" if use_cuda else "cpu"
+        if use_cuda and torch.cuda.is_available():
+            print(f"INFO: MedGemma will use device: {self.device} ({torch.cuda.get_device_name(0)})")
+        else:
+            print(f"INFO: MedGemma will use device: {self.device}")
+
         token = self._get_hf_token()
         model_id = "google/medgemma-1.5-4b-it"
 
         self.processor = AutoProcessor.from_pretrained(model_id, token=token)
 
-        if torch.cuda.is_available():
+        if use_cuda:
             if _BNB_AVAILABLE:
                 # 4-bit quantization: reduces model from ~8 GB to ~4 GB VRAM.
                 # Required on 16 GB GPUs (T4) to leave room for the vision tower
@@ -82,6 +92,7 @@ class MedGemmaManager:
                 print(f"WARNING: bitsandbytes not available. Loaded in {dtype} — may require more VRAM.")
         else:
             print("WARNING: GPU not available. Loading model to CPU. This will be slow.")
+            print("         Restart the runtime after enabling GPU, or set FORCE_CUDA=1 to try forcing GPU.")
             self.model = AutoModelForCausalLM.from_pretrained(
                 model_id,
                 device_map="auto",
