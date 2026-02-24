@@ -40,9 +40,11 @@ FACTUAL EXTRACTION (from Analyst):
 
 Based on the extraction above, provide your clinical interpretation."""
 
+        max_tokens = 1024 if image is not None else 2048
+
         return self.model_manager.generate_response(
             system_prompt=CLINICIAN_SYSTEM_PROMPT,
             user_message=enhanced,
             image=image,
-            max_tokens=2048,
+            max_tokens=max_tokens,
         )

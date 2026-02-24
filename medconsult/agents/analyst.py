@@ -33,9 +33,13 @@ class AnalystAgent:
             enhanced += f"⚠️ QUALITY FEEDBACK: {feedback}\n\n"
         enhanced += user_input_text
 
+        # Image ABCDE extraction needs fewer tokens than a full lab report.
+        # Cap at 512 when image is present to keep inference fast on GPU.
+        max_tokens = 512 if image is not None else 2048
+
         return self.model_manager.generate_response(
             ANALYST_SYSTEM_PROMPT,
             enhanced,
             image=image,
-            max_tokens=2048,
+            max_tokens=max_tokens,
         )
