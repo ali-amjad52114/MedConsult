@@ -21,7 +21,9 @@ Score: [1-5]
 Analyst Assessment: [1-2 sentences]
 Clinician Assessment: [1-2 sentences]
 Critic Assessment: [1-2 sentences]
-Key Issues Found: [bullet list or "None"]
+Analyst Issues to Fix: [bullet list or "None"]
+Clinician Issues to Fix: [bullet list or "None"]
+Critic Issues to Fix: [bullet list or "None"]
 Suggested Improvements: [bullet list]
 --- END OF EVALUATION ---
 """

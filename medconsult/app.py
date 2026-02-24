@@ -44,6 +44,7 @@ Your results above are complete and valid.
     total_lessons = sirius_result.get("total_lessons", 0)
     library_stats = sirius_result.get("library_stats", {})
     lessons_injected = sirius_result.get("lessons_injected", [])
+    validation_report = sirius_result.get("validation_report", None)
 
     # Build lessons extracted topics from chain if available
     extracted_topics = []
@@ -57,7 +58,7 @@ Your results above are complete and valid.
     if isinstance(lessons_injected, dict):
         injected_str = f"{len(lessons_injected.get('analyst', [])) + len(lessons_injected.get('clinician', [])) + len(lessons_injected.get('critic', []))} injected"
 
-    return f"""**Quality Score: {score}/5**
+    base_msg = f"""**Quality Score: {score}/5**
 
 **Evaluator assessment:**
 {raw}
@@ -72,6 +73,15 @@ Your results above are complete and valid.
 
 *Evaluation ran after your results were delivered.*
 """
+    if validation_report:
+        trend = validation_report.get("trend", "flat")
+        degrading = ", ".join(validation_report.get("degrading_agents", [])) or "None"
+        base_msg += f"\n\n---\n### 📊 Validation Report (Every 5 Runs)\n"
+        base_msg += f"**Trend:** {trend}\n"
+        base_msg += f"**Degrading Agents:** {degrading}\n"
+        base_msg += f"**Average Score (last 5):** {validation_report.get('average_score', 0):.2f}\n"
+
+    return base_msg
 
 
 def _process(
@@ -197,8 +207,27 @@ def _build_ui():
             with gr.Tab("⏱️ Processing Info", id="tab4"):
                 tab4_out = gr.Code(language="json", label="Metadata")
             with gr.Tab("🧠 SiriuS Intelligence", id="tab5"):
-                tab5_out = gr.Markdown("")
+                with gr.Tabs():
+                    with gr.Tab("📝 Learning Log"):
+                        tab5_out = gr.Markdown("")
+                    with gr.Tab("📊 Validation"):
+                        validation_output = gr.JSON(label="Latest Validation Report")
+                        run_count_display = gr.Textbox(label="Total Runs", interactive=False)
+                        validate_btn = gr.Button("Check Validation Status")
 
+                        def check_validation():
+                            try:
+                                pipeline = _get_pipeline()
+                                report = pipeline.get_validation_report()
+                                count = pipeline.get_run_count()
+                                return (
+                                    report if report else {"status": "No validation yet", "next_at": f"Run #{((count // 5) + 1) * 5}"},
+                                    f"{count} runs completed (validates every 5)"
+                                )
+                            except Exception:
+                                return {"status": "Pipeline not initialized"}, "0 runs"
+
+                        validate_btn.click(check_validation, outputs=[validation_output, run_count_display])
         gr.Markdown("### Examples")
         gr.Examples(
             examples=[

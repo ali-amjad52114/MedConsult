@@ -51,7 +51,7 @@ def get_cbc_chain(analyst, clinician, critic):
         _cbc_chain["clinician"] = clinician.interpret(_cbc_chain["input"], _cbc_chain["analyst"])
         
         print("[CBC] Running Critic...")
-        _cbc_chain["critic"] = critic.summarize(_cbc_chain["input"], _cbc_chain["analyst"], _cbc_chain["clinician"])
+        _cbc_chain["critic"] = critic.review_and_communicate(_cbc_chain["input"], _cbc_chain["analyst"], _cbc_chain["clinician"])
     return _cbc_chain
 
 def get_clinical_chain(analyst, clinician, critic):
@@ -66,7 +66,7 @@ def get_clinical_chain(analyst, clinician, critic):
         _clinical_chain["clinician"] = clinician.interpret(_clinical_chain["input"], _clinical_chain["analyst"])
         
         print("[Clinical] Running Critic...")
-        _clinical_chain["critic"] = critic.summarize(_clinical_chain["input"], _clinical_chain["analyst"], _clinical_chain["clinician"])
+        _clinical_chain["critic"] = critic.review_and_communicate(_clinical_chain["input"], _clinical_chain["analyst"], _clinical_chain["clinician"])
     return _clinical_chain
 
 def test_valid_score_cbc(analyst, clinician, critic, evaluator):

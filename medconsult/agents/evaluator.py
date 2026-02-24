@@ -52,12 +52,23 @@ Critic Output:
                 except ValueError:
                     pass
 
-            # Parse Key Issues Found
-            issues_match = re.search(r'Key Issues Found:\s*(.*?)(?=Suggested Improvements:|---|$)', response, re.IGNORECASE | re.DOTALL)
-            if issues_match:
-                issues_text = issues_match.group(1).strip()
-                if issues_text.lower() != 'none':
-                    issues = [line.strip('-* ').strip() for line in issues_text.split('\n') if line.strip('-* ')]
+            # Parse Key Issues Found - now separated by agent
+            def extract_issues(tag):
+                match = re.search(f'{tag}:\\s*(.*?)(?=Analyst Issues to Fix:|Clinician Issues to Fix:|Critic Issues to Fix:|Suggested Improvements:|---|$)', response, re.IGNORECASE | re.DOTALL)
+                if match:
+                    text = match.group(1).strip()
+                    if text.lower() != 'none':
+                        return [line.strip('-* ').strip() for line in text.split('\n') if line.strip('-* ')]
+                return []
+
+            issues = []
+            analyst_issues = extract_issues('Analyst Issues to Fix')
+            clinician_issues = extract_issues('Clinician Issues to Fix')
+            critic_issues = extract_issues('Critic Issues to Fix')
+            
+            issues.extend(analyst_issues)
+            issues.extend(clinician_issues)
+            issues.extend(critic_issues)
 
             # Parse Suggested Improvements
             improvements_match = re.search(r'Suggested Improvements:\s*(.*?)(?=---|$)', response, re.IGNORECASE | re.DOTALL)
@@ -70,5 +81,8 @@ Critic Output:
             "score": score,
             "raw_evaluation": response.strip(),
             "issues": issues,
+            "analyst_issues": analyst_issues,
+            "clinician_issues": clinician_issues,
+            "critic_issues": critic_issues,
             "improvements": improvements
         }

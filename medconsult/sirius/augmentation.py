@@ -1,91 +1,168 @@
+"""Enhanced augmentation with per-agent scoring, escalation,
+cross-agent feedback, and anti-lesson extraction."""
+
+import json
+import re
+import xml.etree.ElementTree as ET
+
+from sirius.augmentation_strategies import get_strategy
+
+
+PER_AGENT_EVAL_PROMPT = """Score EACH agent in this medical analysis (1-5).
+Determine which agents should retry.
+
+Input: {input_text}
+ANALYST:   {analyst}
+CLINICIAN: {clinician}
+CRITIC:    {critic}
+
+Return ONLY JSON (no markdown fences):
+{{
+  "analyst":   {{"score": 4, "feedback": "...", "should_retry": false}},
+  "clinician": {{"score": 2, "feedback": "...", "should_retry": true}},
+  "critic":    {{"score": 3, "feedback": "...", "should_retry": false}}
+}}
 """
-SiriuS augmentation: re-run agents with evaluator feedback when score ≤ 2.
-Injects issues and improvements into prompts; retries up to max_retries.
+
+CROSS_FEEDBACK_PROMPT = """The Critic reviewed a medical analysis and found problems.
+Write ONE specific sentence of feedback for the Analyst.
+Start with "The Critic noted: ..."
+
+Critic output: {critic_output}
 """
 
+ANTI_LESSON_PROMPT = """This medical analysis scored {score}/5. Analyze what went WRONG.
+Extract "anti-lessons" — specific patterns to AVOID.
 
-class AugmentationLoop:
-    """Re-runs Analyst→Clinician→Critic with Evaluator feedback when score ≤ 2."""
+Input:     {input_text}
+Analyst:   {analyst}
+Clinician: {clinician}
+Critic:    {critic}
 
-    def __init__(self, pipeline, max_retries: int = 2):
-        self.pipeline = pipeline
+Return ONLY XML:
+<anti_lessons>
+  <lesson>
+    <target_agent>clinician</target_agent>
+    <topic>Missed critical value</topic>
+    <rule>AVOID: Do not overlook potassium above 5.5 — always flag as critical</rule>
+  </lesson>
+</anti_lessons>
+"""
+
+VALID_AGENTS = {"analyst", "clinician", "critic"}
+
+
+class EnhancedAugmentation:
+    """Augmentation engine with 4 upgrade paths."""
+
+    def __init__(self, cloud_manager, max_retries=3):
+        self.cloud = cloud_manager
         self.max_retries = max_retries
+        self.retry_log = []
 
-    def augment(self, original_result: dict, evaluation: dict, image=None) -> dict:
-        """
-        Re-run the agent chain with targeted feedback when score <= 2.
-        Returns a dict with the best result found, attempt count, and score delta.
-        """
-        original_score = evaluation["score"]
-        current_result = original_result
-        current_evaluation = evaluation
-        current_score = original_score
-        attempts = 0
+    # ── (a) Per-agent scoring ──
 
-        for _ in range(self.max_retries):
-            attempts += 1
-
-            issues = current_evaluation.get("issues", [])
-            improvements = current_evaluation.get("improvements", [])
-
-            analyst_feedback = self._build_feedback(issues, improvements)
-            clinician_feedback = self._build_feedback(issues, improvements)
-            critic_feedback = self._build_feedback(issues, improvements)
-
-            user_input = original_result["input"]
-
-            # Re-run chain with feedback injected into each agent
-            analyst_out = self.pipeline.analyst.analyze(
-                user_input, image, feedback=analyst_feedback
+    def score_agents(self, chain):
+        """Score each agent independently. Returns dict or None."""
+        prompt = PER_AGENT_EVAL_PROMPT.format(
+            input_text=str(chain["input"])[:300],
+            analyst=str(chain["analyst"])[:300],
+            clinician=str(chain["clinician"])[:300],
+            critic=str(chain["critic"])[:300],
+        )
+        try:
+            raw = self.cloud.generate_response(
+                system_prompt="You are a strict evaluator scoring medical agents.",
+                user_message=prompt,
+                max_tokens=1024
             )
-            clinician_out = self.pipeline.clinician.interpret(
-                user_input, analyst_out, image, feedback=clinician_feedback
+            jm = re.search(r"\{[\s\S]*\}", raw)
+            return json.loads(jm.group()) if jm else None
+        except Exception:
+            return None
+
+    def get_retry_agents(self, agent_scores):
+        """Return list of (agent_name, feedback) for agents needing retry."""
+        retries = []
+        if not agent_scores:
+            return retries
+        for name in ["analyst", "clinician", "critic"]:
+            fb = agent_scores.get(name, {})
+            if isinstance(fb, dict) and fb.get("should_retry", False):
+                retries.append((name, fb.get("feedback", "")))
+        return retries
+
+    # ── (b) Escalating retry ──
+
+    def get_retry_context(self, agent_name, feedback, attempt):
+        """Return (context_string, strategy_name) for the given attempt."""
+        strategy_fn = get_strategy(attempt)
+        context = strategy_fn(feedback)
+        strategy_name = strategy_fn.__name__
+        self.retry_log.append({
+            "agent": agent_name,
+            "attempt": attempt,
+            "strategy": strategy_name,
+        })
+        return context, strategy_name
+
+    # ── (c) Cross-agent feedback ──
+
+    def get_cross_feedback(self, critic_output):
+        """Generate feedback from Critic to Analyst."""
+        prompt = CROSS_FEEDBACK_PROMPT.format(
+            critic_output=str(critic_output)[:400]
+        )
+        try:
+            return self.cloud.generate_response(
+                system_prompt="You pass critical feedback from a critic to an analyst.",
+                user_message=prompt,
+                max_tokens=200
+            ).strip()
+        except Exception:
+            return ""
+
+    # ── (d) Anti-lessons ──
+
+    def extract_anti_lessons(self, chain, score):
+        """Extract pitfall-warning lessons from failed chains."""
+        prompt = ANTI_LESSON_PROMPT.format(
+            score=score,
+            input_text=str(chain["input"])[:300],
+            analyst=str(chain["analyst"])[:300],
+            clinician=str(chain["clinician"])[:300],
+            critic=str(chain["critic"])[:300],
+        )
+        try:
+            raw = self.cloud.generate_response(
+                system_prompt="You are extracting failure patterns to avoid.",
+                user_message=prompt,
+                max_tokens=1024
             )
-            critic_out = self.pipeline.critic.review_and_communicate(
-                user_input, analyst_out, clinician_out, image, feedback=critic_feedback
+            match = re.search(
+                r"<anti_lessons>(.*?)</anti_lessons>", raw, re.DOTALL | re.IGNORECASE
             )
-
-            new_result = {
-                "input": user_input,
-                "analyst": analyst_out,
-                "clinician": clinician_out,
-                "critic": critic_out,
-                "metadata": original_result.get("metadata", {}),
-            }
-
-            new_evaluation = self.pipeline.evaluator.evaluate(
-                user_input, analyst_out, clinician_out, critic_out
+            if not match:
+                return []
+            root = ET.fromstring(
+                f"<anti_lessons>{match.group(1)}</anti_lessons>"
             )
-            new_score = new_evaluation["score"]
+            results = []
+            for el in root.findall("lesson"):
+                agent = (el.findtext("target_agent") or "").strip().lower()
+                rule = (el.findtext("rule") or "").strip()
+                if not rule:
+                    continue
+                results.append({
+                    "target_agent": agent if agent in VALID_AGENTS else "clinician",
+                    "lesson_type": "pitfall_warning",
+                    "topic": (el.findtext("topic") or "failure pattern").strip(),
+                    "rule": rule,
+                    "confidence": "high",
+                })
+            return results
+        except Exception:
+            return []
 
-            # Accept if improved significantly or threshold reached
-            if new_score >= 4 or new_score > current_score:
-                return {
-                    "improved_result": new_result,
-                    "improved_evaluation": new_evaluation,
-                    "attempts": attempts,
-                    "original_score": original_score,
-                    "final_score": new_score,
-                    "improved": new_score > original_score,
-                }
-
-            current_result = new_result
-            current_evaluation = new_evaluation
-            current_score = new_score
-
-        return {
-            "improved_result": current_result,
-            "improved_evaluation": current_evaluation,
-            "attempts": attempts,
-            "original_score": original_score,
-            "final_score": current_score,
-            "improved": current_score > original_score,
-        }
-
-    def _build_feedback(self, issues: list, improvements: list) -> str | None:
-        parts = []
-        if issues:
-            parts.append("Issues to fix: " + "; ".join(issues[:3]))
-        if improvements:
-            parts.append("Improvements needed: " + "; ".join(improvements[:3]))
-        return " | ".join(parts) if parts else None
+    def get_retry_log(self):
+        return list(self.retry_log)

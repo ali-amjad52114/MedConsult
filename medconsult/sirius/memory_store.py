@@ -5,7 +5,7 @@ Stores distilled reasoning patterns; retrieved at inference for ICL injection.
 
 import chromadb
 from datetime import datetime
-
+import uuid
 
 class MemoryStore:
     """ChromaDB vector store: stores/retrieves medical reasoning lessons."""
@@ -13,89 +13,80 @@ class MemoryStore:
     def __init__(self, persist_dir="experience_library/chroma_db"):
         self.persist_dir = persist_dir
         self.client = chromadb.PersistentClient(path=persist_dir)
-        # Uses ChromaDB's default embedding function (all-MiniLM-L6-v2, CPU-friendly)
         self.collection = self.client.get_or_create_collection(
             name="medical_lessons"
         )
 
-    def store_lessons(self, lessons: list) -> int:
-        """
-        Store lesson dicts. Each lesson has: topic, rule, input_type, example_values, etc.
-        Each lesson must have: topic, input_type, rule, example_values, confidence,
-        source_score, chain_id.
-        Returns the number of lessons successfully stored.
-        """
-        stored = 0
-        for lesson in lessons:
-            try:
-                rule = lesson.get("rule", "").strip()
-                if not rule:
-                    continue
+    def add_lesson(self, lesson_text, metadata=None):
+        """Store a lesson with optional metadata dict."""
+        if not lesson_text:
+            return
 
-                timestamp = datetime.now().strftime("%Y%m%d%H%M%S%f")
-                topic_slug = lesson.get("topic", "unknown").replace(" ", "_").lower()[:30]
-                chain_id = str(lesson.get("chain_id", "unknown"))[:20]
-                lesson_id = f"{chain_id}_{topic_slug}_{timestamp}"
+        lesson_id = str(uuid.uuid4())
+        
+        # Ensure metadata is a dict and values are compatible with Chroma
+        valid_metadata = {}
+        if metadata:
+            for k, v in metadata.items():
+                if v is not None:
+                    valid_metadata[k] = str(v)
 
-                metadata = {
-                    "topic": str(lesson.get("topic", "")),
-                    "input_type": str(lesson.get("input_type", "general")),
-                    "example_values": str(lesson.get("example_values", "")),
-                    "confidence": str(lesson.get("confidence", "medium")),
-                    "source_score": int(lesson.get("source_score", 3)),
-                    "chain_id": str(lesson.get("chain_id", "")),
-                }
+        try:
+            self.collection.add(
+                ids=[lesson_id],
+                documents=[lesson_text],
+                metadatas=[valid_metadata] if valid_metadata else None,
+            )
+        except Exception as e:
+            print(f"Warning: Failed to add lesson: {e}")
 
-                self.collection.add(
-                    ids=[lesson_id],
-                    documents=[rule],
-                    metadatas=[metadata],
-                )
-                stored += 1
-            except Exception as e:
-                print(f"Warning: Failed to store lesson: {e}")
-
-        return stored
-
-    def retrieve_lessons(
-        self, query_text: str, input_type: str = None, top_k: int = 5
-    ) -> list:
-        """
-        Query ChromaDB for relevant lessons.
-        If input_type is provided, filters by that type.
-        Returns a list of dicts with rule + metadata fields.
-        """
+    def query_for_agent(self, agent_name, query_text, n=5):
+        """Query lessons filtered by target_agent. Falls back to unfiltered."""
         count = self.collection.count()
         if count == 0:
             return []
 
-        n = min(top_k, count)
-        query_kwargs = {
-            "query_texts": [query_text],
-            "n_results": n,
-            "include": ["documents", "metadatas"],
-        }
-
-        if input_type is not None:
-            query_kwargs["where"] = {"input_type": {"$eq": input_type}}
-
+        search_n = min(n, count)
+        
         try:
-            results = self.collection.query(**query_kwargs)
-        except Exception:
-            # Filter may yield no matches — retry without filter
-            query_kwargs.pop("where", None)
+            # Try with filter
+            results = self.collection.query(
+                query_texts=[query_text],
+                n_results=search_n,
+                where={"target_agent": agent_name},
+                include=["documents", "metadatas"]
+            )
+            
+            # If no results or not enough, fallback
+            docs = results.get("documents", [[]])[0]
+            if len(docs) == 0:
+                print(f"No lessons found for {agent_name}, falling back to unfiltered")
+                fallback_n = min(3, count)
+                results = self.collection.query(
+                    query_texts=[query_text],
+                    n_results=fallback_n,
+                    include=["documents", "metadatas"]
+                )
+        except Exception as e:
+            print(f"Query error: {e}. Falling back to unfiltered.")
+            fallback_n = min(3, count)
             try:
-                results = self.collection.query(**query_kwargs)
-            except Exception as e:
-                print(f"Warning: Failed to retrieve lessons: {e}")
+                results = self.collection.query(
+                    query_texts=[query_text],
+                    n_results=fallback_n,
+                    include=["documents", "metadatas"]
+                )
+            except Exception:
                 return []
 
         lessons = []
         docs = results.get("documents", [[]])[0]
         metas = results.get("metadatas", [[]])[0]
+        
         for doc, meta in zip(docs, metas):
             lesson = {"rule": doc}
-            lesson.update(meta)
+            if meta:
+                lesson.update(meta)
             lessons.append(lesson)
 
         return lessons
@@ -106,7 +97,10 @@ class MemoryStore:
 
     def clear(self):
         """Delete all lessons (for testing)."""
-        self.client.delete_collection("medical_lessons")
-        self.collection = self.client.get_or_create_collection(
-            name="medical_lessons"
-        )
+        try:
+            self.client.delete_collection("medical_lessons")
+            self.collection = self.client.get_or_create_collection(
+                name="medical_lessons"
+            )
+        except Exception:
+            pass
